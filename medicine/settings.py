@@ -40,6 +40,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'app.custom_cors_middleware.CustomCorsMiddleware',
 ]
 
 ROOT_URLCONF = APP_NAME + '.urls'
