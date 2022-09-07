@@ -1,11 +1,12 @@
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
-from .models import Account
+from .models import Account, Prediction
 import numpy as np
 import pandas as pd
 from sklearn import preprocessing, cross_validation, neighbors, datasets
 from django.http import HttpResponse, JsonResponse
 import os
+import json
 
 @api_view(['POST'])
 def prediction(request):
@@ -23,7 +24,7 @@ def prediction(request):
     clf.fit(X_train, y_train)
     accuracy = clf.score(X_test, y_test)
 
-
+    email = request.data['email']
     clump_thickness = int(request.data['clump_thickness'])
     unif_cell_size = int(request.data['unif_cell_size'])
     unif_cell_shape = int(request.data['unif_cell_shape'])
@@ -48,9 +49,14 @@ def prediction(request):
             message = "Fortunately, It's Benign !"
     else:
         message = "Unfortunately, It's Malignant !"
+
+
+    owner = Account.objects.get(email=email)
+    pred = Prediction(owner=owner, prediction=int(prediction[0]), accuracy = accuracy *100, comment="")
+    pred.save()
     return Response({
         'accuracy' : accuracy * 100,
-        'prediction' : int(prediction[0]) ,
+        'prediction' : prediction ,
         'message': message
     })
 
@@ -81,9 +87,49 @@ def login(request):
         return Response({"You need to register"})
 
 @api_view(['POST'])
+def dlogin(request):
+    email = request.data['email']
+    password = request.data['password']
+
+    try:
+        a = Account.objects.get(email=email)
+        if a.password == password:
+            if a.type == "doctor":
+                return Response("login")
+            else:
+                return Response("not a doctor")
+        else:
+            return Response("invalid credentials")
+    except:
+        return Response({"You need to register"})
+
+@api_view(['POST'])
 def get_predictions_per_user(request):
-    return Response({"get_predictions_per_user"})
+    email = request.data['email']
+
+    try:
+        owner = Account.objects.get(email=email)
+        result = list(Prediction.objects.filter(owner = owner).values())
+        print(result)
+    except:
+        result = []
+    return JsonResponse({'data':result})
 
 @api_view(['POST'])
 def get_predictions_for_doctor(request):
-    return Response({"get_predictions_for_doctor"})
+    try:
+        result = list(Prediction.objects.all().values())
+    except:
+        result = []
+    return Response({'data':result})
+
+@api_view(['Post'])
+def create_comment(request):
+    id = request.data['id']
+    comment = request.data['comment']
+
+    pred = Prediction.objects.get(id=id)
+    pred.comment = comment
+    pred.save()
+
+    return Response("done")

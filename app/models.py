@@ -18,4 +18,4 @@ class Prediction(models.Model):
     comment = models.CharField(max_length=200)
 
     def __str__(self):
-        return self.owner + self.prediction
+        return self.owner.email + self.prediction
